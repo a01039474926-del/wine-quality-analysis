@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>레드와인 품질 데이터 분석</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/monokai.css">
+<style>
+  :root {
+    --wine: #8e2f36;
+    --wine-dark: #5c1a20;
+    --wine-light: #c05a61;
+    --ink: #2b2320;
+    --paper: #fbf8f4;
+    --accent: #b08d57;
+  }
+  .reveal { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; color: var(--ink); }
+  .reveal .slides { text-align: left; }
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 { font-family: 'Noto Sans KR', sans-serif; color: var(--wine-dark); text-transform: none; font-weight: 700; letter-spacing: -0.01em; }
+  .reveal h1 { font-size: 1.9em; }
+  .reveal h2 { font-size: 1.35em; margin-bottom: .4em; }
+  .reveal h3 { font-size: 1.0em; }
+  .reveal p, .reveal li { font-size: .72em; line-height: 1.5; }
+  .reveal section { padding: 0; }
+  .reveal .slide-inner { padding: 0 4px; }
+
+  .title-slide { background: radial-gradient(circle at 20% 20%, #7a262d 0%, #3a0f14 60%, #1c0709 100%); }
+  .title-slide h1, .title-slide h2, .title-slide p { color: #fff !important; }
+  .title-slide .kicker { color: var(--accent); letter-spacing: .35em; font-size: .55em; text-transform: uppercase; }
+  .title-slide .subtitle { color: #f0d9c0; font-size: .8em; }
+  .title-slide .meta { color: #d9b8a3; font-size: .5em; margin-top: 1.2em; }
+  .wine-emoji { font-size: 3.2em; line-height: 1; }
+
+  .reveal .slides section::after { }
+  .reveal .footer { position: absolute; bottom: 12px; right: 20px; font-size: 12px; color: #b9a89a; }
+
+  .bignum { font-size: 1.9em; font-weight: 900; color: var(--wine); line-height: 1; }
+  .bignum small { font-size: .38em; color: #8a7d72; font-weight: 500; display: block; margin-top: 6px; }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; }
+  .grid2-wide { display: grid; grid-template-columns: 1.3fr 1fr; gap: 22px; align-items: center; }
+
+  .card { background: #fff; border: 1px solid #ecdfd4; border-radius: 12px; padding: 16px 18px; box-shadow: 0 6px 18px rgba(92,26,32,.07); }
+  .card .label { font-size: .52em; color: #9b8b7e; font-weight: 500; }
+  .card .value { font-size: 1.15em; font-weight: 800; color: var(--wine); }
+
+  .reveal table { font-size: .62em; width: 100%; border-collapse: collapse; }
+  .reveal table th { background: var(--wine); color: #fff; padding: 8px 10px; font-weight: 600; }
+  .reveal table td { padding: 6px 10px; border-bottom: 1px solid #eee2d7; }
+  .reveal table tr:nth-child(even) td { background: #faf5ef; }
+  .hl { color: var(--wine); font-weight: 800; }
+  .pos { color: #1e7a4d; font-weight: 700; }
+  .neg { color: #b3322b; font-weight: 700; }
+
+  .reveal img { border-radius: 8px; }
+  .fig-center { display:block; margin: 0 auto; max-height: 62vh; }
+
+  .pill { display:inline-block; background: #f3e6dd; color: var(--wine-dark); border-radius: 999px; padding: 3px 12px; font-size: .5em; margin: 2px 3px; font-weight: 600; }
+  .note { font-size: .55em; color: #8a7d72; }
+  .reveal ul { margin-left: 0.6em; }
+  .reveal li { margin-bottom: .28em; }
+  .kpi-row { display:grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-top: 10px; }
+  .big-q { font-size: .6em; }
+  .progress-bar span { background: var(--wine) !important; }
+</style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 1. Title -->
+    <section class="title-slide" data-background-color="#1c0709">
+      <div class="slide-inner" style="text-align:center;">
+        <div class="wine-emoji">🍷</div>
+        <p class="kicker">Data Analysis Presentation</p>
+        <h1>레드와인 품질 데이터 분석</h1>
+        <p class="subtitle">물리·화학적 측정값으로 품질을 설명하고, 우수 와인을 예측하다</p>
+        <p class="meta">UCI Wine Quality Data Set · Cortez et al. (2009) · n = 1,599</p>
+      </div>
+    </section>
+
+    <!-- 2. 목차 -->
+    <section>
+      <div class="slide-inner">
+        <h2>목차</h2>
+        <div class="grid2">
+          <div class="card"><span class="label">01</span><br><b>데이터 소개</b><p class="note">출처·변수 구성·규모</p></div>
+          <div class="card"><span class="label">02</span><br><b>데이터 개요</b><p class="note">결측·중복·품질 분포</p></div>
+          <div class="card"><span class="label">03</span><br><b>탐색적 분석</b><p class="note">상관관계·분포·이상치</p></div>
+          <div class="card"><span class="label">04</span><br><b>품질 예측 모델링</b><p class="note">분류 모델·성능·중요 변수</p></div>
+        </div>
+        <p class="note" style="margin-top:10px;">05 결론 및 시사점 &nbsp;·&nbsp; 06 한계와 향후 과제</p>
+      </div>
+    </section>
+
+    <!-- 3. 데이터 소개 -->
+    <section>
+      <div class="slide-inner">
+        <h2>01 · 데이터 소개</h2>
+        <div class="grid2-wide">
+          <div>
+            <ul>
+              <li><b>출처</b>: UCI ML Repository — Wine Quality (Cortez et al., 2009)</li>
+              <li><b>배포</b>: Kaggle <code>uciml/red-wine-quality-cortez-et-al-2009</code></li>
+              <li><b>규모</b>: 레드와인 <span class="hl">1,599</span>개 샘플</li>
+              <li><b>변수</b>: 화학적 측정값 <span class="hl">11개</span> + 품질 점수(목표, 3~8)</li>
+            </ul>
+            <p style="margin-top:.6em;">
+              <span class="pill">fixed acidity</span><span class="pill">volatile acidity</span>
+              <span class="pill">citric acid</span><span class="pill">residual sugar</span>
+              <span class="pill">chlorides</span><span class="pill">free SO₂</span>
+              <span class="pill">total SO₂</span><span class="pill">density</span>
+              <span class="pill">pH</span><span class="pill">sulphates</span>
+              <span class="pill">alcohol</span>
+            </p>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div class="bignum">1,599<small>레드와인 샘플</small></div>
+            <hr style="border:none;border-top:1px solid #eee2d7;">
+            <div class="bignum">11+1<small>화학 변수 + 품질</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 데이터 개요 -->
+    <section>
+      <div class="slide-inner">
+        <h2>02 · 데이터 개요</h2>
+        <div class="kpi-row">
+          <div class="card"><div class="label">표본 수</div><div class="value">1,599</div></div>
+          <div class="card"><div class="label">결측치</div><div class="value">0</div></div>
+          <div class="card"><div class="label">중복 행</div><div class="value">240</div></div>
+          <div class="card"><div class="label">평균 품질</div><div class="value">5.64</div></div>
+        </div>
+        <div class="grid2" style="margin-top:16px;">
+          <div>
+            <h3>품질 점수 분포</h3>
+            <table>
+              <tr><th>품질</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr>
+              <tr><td>빈도</td><td>10</td><td>53</td><td><b>681</b></td><td><b>638</b></td><td>199</td><td>18</td></tr>
+            </table>
+            <p class="note" style="margin-top:8px;">5·6점에 약 <b>82%</b> 집중 → <b>클래스 불균형</b></p>
+          </div>
+          <img src="figures/01_quality_distribution.png" style="max-height:34vh;">
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 품질 분포 / 불균형 -->
+    <section>
+      <div class="slide-inner">
+        <h2>품질은 소수 클래스에 치우쳐 있다</h2>
+        <div class="grid2">
+          <div>
+            <ul>
+              <li>보통 등급(≤6점) = 전체의 <b>약 86%</b></li>
+              <li>우수 등급(≥7점) = 단 <span class="hl">13.6% (217개)</span></li>
+              <li>3·4점·8점 등급은 표본이 극히 적음</li>
+            </ul>
+            <p class="note">→ 정확도만으로 평가하면 소수 클래스를 놓치므로 <b>F1 / ROC-AUC</b> 중심 평가가 적절</p>
+          </div>
+          <img src="figures/01_quality_distribution.png" style="max-height:34vh;">
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. 변수별 분포 -->
+    <section>
+      <div class="slide-inner">
+        <h2>03 · 변수별 분포</h2>
+        <img class="fig-center" src="figures/02_feature_histograms.png">
+        <p class="note">잔당·염화물·황산염은 오른쪽으로 긴 꼬리(양의 왜도) → 이상치 가능성</p>
+      </div>
+    </section>
+
+    <!-- 7. 상관관계 요약 -->
+    <section>
+      <div class="slide-inner">
+        <h2>03 · 품질과의 상관관계</h2>
+        <div class="grid2">
+          <div>
+            <table>
+              <tr><th>변수</th><th>상관계수</th></tr>
+              <tr><td>알코올 (alcohol)</td><td class="pos">+0.476</td></tr>
+              <tr><td>황산염 (sulphates)</td><td class="pos">+0.251</td></tr>
+              <tr><td>구연산 (citric acid)</td><td class="pos">+0.226</td></tr>
+              <tr><td>총 이산화황</td><td class="neg">−0.185</td></tr>
+              <tr><td>밀도 (density)</td><td class="neg">−0.175</td></tr>
+              <tr><td>휘발성 산도</td><td class="neg">−0.391</td></tr>
+            </table>
+          </div>
+          <img src="figures/08_corr_with_quality.png" style="max-height:42vh;">
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. 상관 히트맵 -->
+    <section>
+      <div class="slide-inner">
+        <h2>변수 간 상관 &amp; 다중공선성</h2>
+        <div class="grid2">
+          <img src="figures/03_correlation_heatmap.png" style="max-height:52vh;">
+          <div>
+            <ul>
+              <li><b>free SO₂ ↔ total SO₂</b> 강한 양의 상관</li>
+              <li><b>fixed acidity ↔ pH</b> 음의 상관</li>
+              <li><b>alcohol ↔ density</b> 음의 상관</li>
+            </ul>
+            <p class="note">다중공선성은 선형 모델 해석에 주의, 트리 모델에는 영향 작음</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. 품질별 박스플롯 -->
+    <section>
+      <div class="slide-inner">
+        <h2>품질이 높을수록 …</h2>
+        <img class="fig-center" src="figures/04_boxplots_by_quality.png" style="max-height:56vh;">
+        <p class="note">알코올·황산염·구연산 <b>증가</b> / 휘발성 산도·밀도 <b>감소</b></p>
+      </div>
+    </section>
+
+    <!-- 10. 모델링 접근 -->
+    <section>
+      <div class="slide-inner">
+        <h2>04 · 품질 예측 모델링</h2>
+        <div class="grid2-wide">
+          <div>
+            <h3>문제 정의</h3>
+            <ul>
+              <li><b>이진 분류</b>: 품질 ≥ 7 → "우수(1)", 미만 → "보통(0)"</li>
+              <li>학습 80% / 테스트 20% (stratify, random_state=42)</li>
+              <li>로지스틱 회귀: 표준화 적용 / RandomForest: 원본</li>
+              <li>불균형 대응: <code>class_weight="balanced"</code></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="bignum">13.6%<small>우수 와인 비율 (217 / 1,599)</small></div>
+            <p class="note" style="margin-top:8px;">실무적으로 "우수 와인 후보 선별"에 부합하는 정의</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. 모델 성능 비교 -->
+    <section>
+      <div class="slide-inner">
+        <h2>모델 성능 비교</h2>
+        <table>
+          <tr><th>모델</th><th>Accuracy</th><th>F1</th><th>ROC-AUC</th></tr>
+          <tr><td>LogisticRegression</td><td>0.8125</td><td>0.5312</td><td>0.8824</td></tr>
+          <tr><td><b>RandomForest</b></td><td class="hl">0.9250</td><td class="hl">0.7143</td><td class="hl">0.9429</td></tr>
+        </table>
+        <div class="grid3" style="margin-top:18px;">
+          <div class="card" style="text-align:center;"><div class="bignum">0.925<small>RandomForest 정확도</small></div></div>
+          <div class="card" style="text-align:center;"><div class="bignum">0.943<small>ROC-AUC</small></div></div>
+          <div class="card" style="text-align:center;"><div class="bignum">0.866<small>교차검증 ROC-AUC (±0.033)</small></div></div>
+        </div>
+        <p class="note" style="margin-top:10px;">RandomForest가 우수 클래스(F1 0.71)를 로지스틱 회귀(0.53)보다 훨씬 잘 탐지</p>
+      </div>
+    </section>
+
+    <!-- 12. 혼동행렬 -->
+    <section>
+      <div class="slide-inner">
+        <h2>혼동행렬 &amp; 분류 리포트</h2>
+        <div class="grid2">
+          <img src="figures/07_confusion_matrix.png" style="max-height:40vh;">
+          <div>
+            <table>
+              <tr><th>클래스</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+              <tr><td>보통</td><td>0.953</td><td>0.960</td><td>0.957</td></tr>
+              <tr><td>우수</td><td>0.732</td><td>0.698</td><td>0.714</td></tr>
+            </table>
+            <p class="note" style="margin-top:8px;">보통 266/277 · 우수 30/43 정확 분류. 오탐(11)이 적어 <b>정밀도 중심</b> 활용에 적합</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. 변수 중요도 -->
+    <section>
+      <div class="slide-inner">
+        <h2>가장 중요한 변수는 '알코올'</h2>
+        <div class="grid2">
+          <img src="figures/06_feature_importance.png" style="max-height:46vh;">
+          <div>
+            <table>
+              <tr><th>순위</th><th>변수</th><th>중요도</th></tr>
+              <tr><td>1</td><td>alcohol</td><td class="hl">0.245</td></tr>
+              <tr><td>2</td><td>sulphates</td><td>0.122</td></tr>
+              <tr><td>3</td><td>volatile acidity</td><td>0.108</td></tr>
+              <tr><td>4</td><td>citric acid</td><td>0.091</td></tr>
+              <tr><td>5</td><td>total SO₂</td><td>0.078</td></tr>
+            </table>
+            <p class="note" style="margin-top:8px;">상관분석과 일치 — 알코올이 압도적</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14. 결론 -->
+    <section>
+      <div class="slide-inner">
+        <h2>05 · 결론 및 시사점</h2>
+        <div class="grid3">
+          <div class="card"><h3>① 알코올이 핵심</h3><p class="note">알코올↑ 품질↑, 휘발성 산도(식초 맛)↑ 품질↓</p></div>
+          <div class="card"><h3>② 불균형 데이터</h3><p class="note">정확도보다 F1·ROC-AUC 중심 평가가 적절</p></div>
+          <div class="card"><h3>③ 실용성 확보</h3><p class="note">RandomForest로 우수 와인 선별 자동화 가능</p></div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <p style="margin:0;"><b>요약:</b> 화학적 지표만으로도 우수 와인(≥7)을 <span class="hl">정확도 0.925 · ROC-AUC 0.943</span>으로 예측 가능하며, 품질 등급 사전 예측·품질 관리 자동화에 활용할 수 있다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15. 한계 -->
+    <section>
+      <div class="slide-inner">
+        <h2>06 · 한계 및 향후 과제</h2>
+        <div class="grid2">
+          <div class="card">
+            <h3>한계</h3>
+            <ul>
+              <li>중복 240건(동일 조건 측정 추정)</li>
+              <li>소수 클래스(3·4·8점) 표본 부족</li>
+              <li>관측 데이터 → 인과관계 아님</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>향후 과제</h3>
+            <ul>
+              <li>하이퍼파라미터 튜닝 (GridSearch)</li>
+              <li>3-클래스 / 회귀 모델 비교</li>
+              <li>이상치 처리·중복 제거 후 재학습</li>
+              <li>SHAP 등 모델 해석 보강</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16. End -->
+    <section class="title-slide" data-background-color="#1c0709">
+      <div class="slide-inner" style="text-align:center;">
+        <div class="wine-emoji">🍷</div>
+        <h1 style="font-size:1.5em;">감사합니다</h1>
+        <p class="subtitle">레드와인 품질 데이터 분석</p>
+        <p class="meta">
+          데이터 출처: UCI ML Repository / Kaggle — Wine Quality (Cortez et al., 2009)<br>
+          분석: Python · pandas · scikit-learn · matplotlib · seaborn
+        </p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'slide',
+    controls: true,
+    progress: true,
+    plugins: [ RevealHighlight, RevealNotes ]
+  });
+</script>
+</body>
+</html>
